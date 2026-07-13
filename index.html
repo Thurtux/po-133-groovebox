@@ -17,13 +17,19 @@
     --pad-dark:#bfbcb5;
     --pad-text:#232323;
     --orange:#ff4d00;
-    --orange-soft:#ff6a26;
+    --accent-dark:#b53700;
+    --accent-glow:rgba(255,77,0,.45);
     --lcd-bg:#141210;
     --lcd-text:#ffb000;
+    --lcd-glow:rgba(255,176,0,.5);
     --step:#3a3a3f;
     --step-on:#ff4d00;
     --white:#f4f2ee;
     --gray-text:#9a9a9e;
+    --pad-bass:#c9cfd6;
+    --pad-bass-dark:#a7adb5;
+    --pad-syn:#d7cfc2;
+    --pad-syn-dark:#b5ada0;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;
     -webkit-touch-callout:none;}
@@ -50,7 +56,7 @@
   .lcd{background:var(--lcd-bg);border-radius:10px;padding:10px 14px;margin-bottom:10px;
     border:1px solid #000;display:flex;justify-content:space-between;align-items:center;
     font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--lcd-text);
-    text-shadow:0 0 6px rgba(255,176,0,.5);}
+    text-shadow:0 0 6px var(--lcd-glow);}
   .lcd .big{font-size:20px;font-weight:700;letter-spacing:.05em;}
   .lcd .small{font-size:10px;opacity:.8;letter-spacing:.1em;}
   .lcd .right{text-align:right;}
@@ -60,14 +66,14 @@
   .t-btn{flex:1;padding:12px 0;border-radius:10px;background:var(--pad);color:var(--pad-text);
     font-size:13px;font-weight:700;letter-spacing:.08em;box-shadow:0 3px 0 var(--pad-dark);}
   .t-btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--pad-dark);}
-  .t-btn.playing{background:var(--orange);color:#fff;box-shadow:0 3px 0 #b53700;}
+  .t-btn.playing{background:var(--orange);color:#fff;box-shadow:0 3px 0 var(--accent-dark);}
   .bpm-box{flex:1.4;display:flex;align-items:center;gap:6px;background:#232326;
-    border-radius:10px;padding:4px 6px;border:1px solid var(--panel-line);}
-  .bpm-box button{width:34px;height:100%;min-height:38px;border-radius:8px;background:var(--step);
-    color:var(--white);font-size:18px;font-weight:700;}
+    border-radius:10px;padding:4px 6px;border:1px solid #39393d;}
+  .bpm-box button{width:34px;height:100%;min-height:38px;border-radius:8px;background:#3a3a3f;
+    color:#f4f2ee;font-size:18px;font-weight:700;}
   .bpm-box button:active{background:var(--orange);}
-  .bpm-val{flex:1;text-align:center;font-family:ui-monospace,Menlo,monospace;font-size:14px;}
-  .bpm-val small{display:block;font-size:8px;color:var(--gray-text);letter-spacing:.15em;}
+  .bpm-val{flex:1;text-align:center;font-family:ui-monospace,Menlo,monospace;font-size:14px;color:#f4f2ee;}
+  .bpm-val small{display:block;font-size:8px;color:#9a9a9e;letter-spacing:.15em;}
 
   /* ---------- seções ---------- */
   .section-label{font-size:9px;letter-spacing:.2em;color:var(--gray-text);margin:14px 2px 6px;
@@ -79,7 +85,7 @@
   .step{aspect-ratio:1.5/1;border-radius:7px;background:var(--step);position:relative;
     border:1px solid #26262a;}
   .step.beat{border-color:#55555c;}
-  .step.on{background:var(--step-on);box-shadow:0 0 10px rgba(255,77,0,.45);}
+  .step.on{background:var(--step-on);box-shadow:0 0 10px var(--accent-glow);}
   .step.now::after{content:"";position:absolute;inset:auto 30% 4px 30%;height:3px;border-radius:2px;
     background:var(--lcd-text);}
   .step:active{filter:brightness(1.3);}
@@ -94,10 +100,10 @@
   .pad.sel{outline:3px solid var(--orange);outline-offset:-3px;}
   .pad .nm{font-size:10px;font-weight:700;letter-spacing:.05em;text-align:center;line-height:1.1;}
   .pad .ky{font-size:8px;color:#8a877f;font-family:ui-monospace,Menlo,monospace;}
-  .pad.snd-bass{background:#c9cfd6;box-shadow:0 4px 0 #a7adb5;}
-  .pad.snd-bass:active,.pad.snd-bass.hit{box-shadow:0 2px 0 #a7adb5;}
-  .pad.snd-syn{background:#d7cfc2;box-shadow:0 4px 0 #b5ada0;}
-  .pad.snd-syn:active,.pad.snd-syn.hit{box-shadow:0 2px 0 #b5ada0;}
+  .pad.snd-bass{background:var(--pad-bass);box-shadow:0 4px 0 var(--pad-bass-dark);}
+  .pad.snd-bass:active,.pad.snd-bass.hit{box-shadow:0 2px 0 var(--pad-bass-dark);}
+  .pad.snd-syn{background:var(--pad-syn);box-shadow:0 4px 0 var(--pad-syn-dark);}
+  .pad.snd-syn:active,.pad.snd-syn.hit{box-shadow:0 2px 0 var(--pad-syn-dark);}
 
   /* ---------- sampler ---------- */
   .slots{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
@@ -106,18 +112,33 @@
   .slot .pad.has{background:var(--pad);color:var(--pad-text);box-shadow:0 4px 0 var(--pad-dark);}
   .slot .pad:active{box-shadow:0 2px 0 #232326;}
   .slot .pad.has:active,.slot .pad.has.hit{box-shadow:0 2px 0 var(--pad-dark);}
-  .rec-btn{padding:7px 0;border-radius:8px;background:#232326;color:var(--gray-text);
-    font-size:9px;font-weight:700;letter-spacing:.12em;border:1px solid var(--panel-line);
+  .rec-btn{padding:7px 0;border-radius:8px;background:#232326;color:#9a9a9e;
+    font-size:9px;font-weight:700;letter-spacing:.12em;border:1px solid #39393d;
     display:flex;align-items:center;justify-content:center;gap:5px;}
   .rec-btn i{width:7px;height:7px;border-radius:50%;background:#c0392b;display:inline-block;}
   .rec-btn.recording{background:#c0392b;color:#fff;animation:blink 1s infinite;}
   .rec-btn.recording i{background:#fff;}
   @keyframes blink{50%{opacity:.55;}}
 
+  /* ---------- estilo / temas ---------- */
+  .themes{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+  .theme{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;padding:0;}
+  .theme i{width:100%;aspect-ratio:1/1;max-width:44px;border-radius:50%;display:block;
+    border:2px solid #45454a;}
+  .theme.sel i{border-color:var(--orange);box-shadow:0 0 8px var(--accent-glow);}
+  .theme span{font-size:7px;letter-spacing:.08em;color:var(--gray-text);font-weight:700;}
+  .customs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;}
+  .cust{display:flex;flex-direction:column;gap:4px;font-size:8px;font-weight:700;
+    letter-spacing:.12em;color:var(--gray-text);text-align:center;}
+  .cust input{width:100%;height:36px;border:1px solid #39393d;border-radius:8px;
+    background:#232326;padding:4px;cursor:pointer;-webkit-appearance:none;appearance:none;}
+  .cust input::-webkit-color-swatch-wrapper{padding:2px;}
+  .cust input::-webkit-color-swatch{border:none;border-radius:5px;}
+
   /* ---------- rodapé ---------- */
   .footer{display:flex;gap:8px;margin-top:14px;}
-  .f-btn{flex:1;padding:9px 0;border-radius:8px;background:#232326;color:var(--gray-text);
-    font-size:9px;font-weight:700;letter-spacing:.12em;border:1px solid var(--panel-line);}
+  .f-btn{flex:1;padding:9px 0;border-radius:8px;background:#232326;color:#9a9a9e;
+    font-size:9px;font-weight:700;letter-spacing:.12em;border:1px solid #39393d;}
   .f-btn:active{color:var(--orange);border-color:var(--orange);}
   .hint{margin-top:10px;font-size:9px;color:#6d6d72;text-align:center;letter-spacing:.05em;line-height:1.6;}
 
@@ -174,6 +195,15 @@
 
   <div class="section-label"><span>SAMPLES — grave com o microfone</span></div>
   <div class="slots" id="slots"></div>
+
+  <div class="section-label"><span>ESTILO — deixe com a sua cara</span></div>
+  <div class="themes" id="themes"></div>
+  <div class="customs">
+    <label class="cust">DESTAQUE<input type="color" id="cc-accent" value="#ff4d00"></label>
+    <label class="cust">PAINEL<input type="color" id="cc-body" value="#2a2a2d"></label>
+    <label class="cust">PADS<input type="color" id="cc-pad" value="#dedbd5"></label>
+    <label class="cust">DISPLAY<input type="color" id="cc-lcd" value="#ffb000"></label>
+  </div>
 
   <div class="footer">
     <button class="f-btn" id="clear-track">LIMPAR TRILHA</button>
@@ -550,6 +580,106 @@ document.addEventListener("keydown", e=>{
   const s = SOUNDS.find(x=>x.ky === e.key.toLowerCase());
   if(s) trigger(s.id);
 });
+
+/* ============================================================
+   ESTILO — temas prontos + cores personalizadas
+   Toda a paleta é derivada de 4 cores: destaque, painel, pads, display
+   ============================================================ */
+function hexToRgb(h){
+  h = h.replace("#","");
+  if(h.length===3) h = h.split("").map(c=>c+c).join("");
+  const n = parseInt(h,16);
+  return [n>>16&255, n>>8&255, n&255];
+}
+function rgbToHex(r,g,b){
+  return "#"+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,"0")).join("");
+}
+function shade(hex,f){ // f>0 clareia, f<0 escurece
+  const [r,g,b] = hexToRgb(hex);
+  return f>=0 ? rgbToHex(r+(255-r)*f, g+(255-g)*f, b+(255-b)*f)
+              : rgbToHex(r*(1+f), g*(1+f), b*(1+f));
+}
+function mixc(h1,h2,t){
+  const a = hexToRgb(h1), b = hexToRgb(h2);
+  return rgbToHex(a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t);
+}
+function lum(hex){
+  const [r,g,b] = hexToRgb(hex);
+  return (0.299*r + 0.587*g + 0.114*b)/255;
+}
+function glow(hex,a){
+  const [r,g,b] = hexToRgb(hex);
+  return "rgba("+r+","+g+","+b+","+a+")";
+}
+
+const PRESETS = [
+  {key:"classico",  nm:"CLÁSSICO", c:{accent:"#ff4d00", body:"#2a2a2d", pad:"#dedbd5", lcd:"#ffb000"}},
+  {key:"neve",      nm:"NEVE",     c:{accent:"#ff4d00", body:"#e9e7e2", pad:"#35353a", lcd:"#ffb000"}},
+  {key:"tangerina", nm:"TANGERINA",c:{accent:"#ffd300", body:"#e04a00", pad:"#f0ebe0", lcd:"#ffd300"}},
+  {key:"floresta",  nm:"FLORESTA", c:{accent:"#ffb000", body:"#252a20", pad:"#d8dcc8", lcd:"#a4c639"}},
+  {key:"miami",     nm:"MIAMI",    c:{accent:"#ff2d95", body:"#231736", pad:"#e4d9ee", lcd:"#00e5ff"}},
+  {key:"oceano",    nm:"OCEANO",   c:{accent:"#00a8ff", body:"#1b2430", pad:"#d3dde6", lcd:"#7fd4ff"}},
+];
+
+let theme = { preset:"classico", ...PRESETS[0].c };
+try{
+  const t = JSON.parse(localStorage.getItem("po133-theme") || "null");
+  if(t && t.accent && t.body && t.pad && t.lcd) theme = t;
+}catch(e){}
+
+function applyTheme(){
+  const { accent, body, pad, lcd } = theme;
+  const light = lum(body) > 0.5;
+  const padLight = lum(pad) > 0.5;
+  const padBass = mixc(pad, padLight ? "#7f9bc4" : "#3d5a80", 0.3);
+  const padSyn  = mixc(pad, padLight ? "#c89a58" : "#7a5c30", 0.3);
+  const v = {
+    "body": shade(body, light ? -0.14 : -0.35),
+    "panel": body,
+    "panel-line": light ? shade(body,-0.12) : shade(body,0.09),
+    "pad": pad, "pad-dark": shade(pad,-0.18),
+    "pad-text": padLight ? "#232323" : "#f4f2ee",
+    "pad-bass": padBass, "pad-bass-dark": shade(padBass,-0.18),
+    "pad-syn": padSyn, "pad-syn-dark": shade(padSyn,-0.18),
+    "orange": accent, "step-on": accent,
+    "accent-dark": shade(accent,-0.35), "accent-glow": glow(accent,0.45),
+    "step": light ? "#3a3a3f" : shade(body,0.11),
+    "lcd-text": lcd, "lcd-glow": glow(lcd,0.5),
+    "white": light ? "#232323" : "#f4f2ee",
+    "gray-text": light ? "#6f6d68" : "#9a9a9e",
+  };
+  const root = document.documentElement.style;
+  Object.keys(v).forEach(k => root.setProperty("--"+k, v[k]));
+  // marca o tema selecionado e sincroniza os seletores
+  document.querySelectorAll(".theme").forEach(el =>
+    el.classList.toggle("sel", el.dataset.key === theme.preset));
+  $("#cc-accent").value = accent; $("#cc-body").value = body;
+  $("#cc-pad").value = pad; $("#cc-lcd").value = lcd;
+  try{ localStorage.setItem("po133-theme", JSON.stringify(theme)); }catch(e){}
+}
+
+const themesEl = $("#themes");
+PRESETS.forEach(p=>{
+  const b = document.createElement("button");
+  b.className = "theme";
+  b.dataset.key = p.key;
+  b.innerHTML = '<i style="background:linear-gradient(135deg,'+p.c.body+' 48%,'+p.c.accent+' 48% 74%,'+p.c.pad+' 74%)"></i><span>'+p.nm+'</span>';
+  b.addEventListener("pointerdown", ()=>{
+    theme = { preset:p.key, ...p.c };
+    applyTheme();
+  });
+  themesEl.appendChild(b);
+});
+
+[["cc-accent","accent"],["cc-body","body"],["cc-pad","pad"],["cc-lcd","lcd"]].forEach(([id,field])=>{
+  $("#"+id).addEventListener("input", e=>{
+    theme.preset = null;          // vira tema personalizado
+    theme[field] = e.target.value;
+    applyTheme();
+  });
+});
+
+applyTheme();
 
 /* sem menu de contexto em toque longo (mobile) */
 document.addEventListener("contextmenu", e => e.preventDefault());
