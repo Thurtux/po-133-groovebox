@@ -91,7 +91,8 @@
   .step:active{filter:brightness(1.3);}
   .step.hidden{display:none;}
   .mini-btn{padding:5px 9px;border-radius:6px;background:#232326;color:#9a9a9e;
-    font-size:8px;font-weight:700;letter-spacing:.1em;border:1px solid #39393d;}
+    font-size:8px;font-weight:700;letter-spacing:.1em;border:1px solid #39393d;
+    white-space:nowrap;}
   .mini-btn:active{color:var(--orange);border-color:var(--orange);}
   .mini-btn.recording{background:#c0392b;color:#fff;border-color:#c0392b;animation:blink 1s infinite;}
 
@@ -117,9 +118,10 @@
   .slot .pad.has{background:var(--pad);color:var(--pad-text);box-shadow:0 4px 0 var(--pad-dark);}
   .slot .pad:active{box-shadow:0 2px 0 #232326;}
   .slot .pad.has:active,.slot .pad.has.hit{box-shadow:0 2px 0 var(--pad-dark);}
-  .rec-btn{padding:7px 0;border-radius:8px;background:#232326;color:#9a9a9e;
+  .rec-btn{height:30px;padding:0;border-radius:8px;background:#232326;color:#9a9a9e;
     font-size:9px;font-weight:700;letter-spacing:.12em;border:1px solid #39393d;
-    display:flex;align-items:center;justify-content:center;gap:5px;}
+    display:flex;align-items:center;justify-content:center;gap:5px;
+    white-space:nowrap;overflow:hidden;}
   .rec-btn i{width:7px;height:7px;border-radius:50%;background:#c0392b;display:inline-block;}
   .rec-btn.recording{background:#c0392b;color:#fff;animation:blink 1s infinite;}
   .rec-btn.recording i{background:#fff;}
@@ -274,6 +276,9 @@
 let ctx = null, master = null;
 function audio(){
   if(!ctx){
+    // "playback" toca como mídia no iOS: ignora o interruptor de silencioso
+    // e mantém o alto-falante como saída
+    if(navigator.audioSession){ try{ navigator.audioSession.type = "playback"; }catch(e){} }
     ctx = new (window.AudioContext || window.webkitAudioContext)({latencyHint:"interactive"});
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -12; comp.ratio.value = 6;
@@ -281,7 +286,8 @@ function audio(){
     master.gain.value = 0.9;
     master.connect(comp); comp.connect(ctx.destination);
   }
-  if(ctx.state === "suspended") ctx.resume();
+  // cobre "suspended" e também "interrupted" (iOS após ligação/microfone)
+  if(ctx.state !== "running") ctx.resume();
   return ctx;
 }
 
@@ -528,8 +534,11 @@ async function toggleRec(id, btn, pad){
   audio();
   let stream;
   try{
+    // avisa ao iOS que vamos tocar e gravar ao mesmo tempo
+    if(navigator.audioSession){ try{ navigator.audioSession.type = "play-and-record"; }catch(e){} }
     stream = await navigator.mediaDevices.getUserMedia({audio:true});
   }catch(e){
+    restoreAudioOutput();
     alert("Não foi possível acessar o microfone. Verifique a permissão do navegador.");
     return;
   }
@@ -538,6 +547,7 @@ async function toggleRec(id, btn, pad){
   mr.ondataavailable = e => { if(e.data.size) chunks.push(e.data); };
   mr.onstop = async ()=>{
     stream.getTracks().forEach(t=>t.stop());
+    restoreAudioOutput();
     btn.classList.remove("recording");
     btn.innerHTML = "<i></i> REC";
     try{
@@ -553,13 +563,18 @@ async function toggleRec(id, btn, pad){
   mr.start();
   recState = { mr, timer: setTimeout(stopRec, 4000) };
   btn.classList.add("recording");
-  btn.innerHTML = "<i></i> GRAVANDO…";
+  btn.innerHTML = "<i></i> PARAR";
 }
 function stopRec(){
   if(!recState) return;
   clearTimeout(recState.timer);
   if(recState.mr.state !== "inactive") recState.mr.stop();
   recState = null;
+}
+/* devolve a saída de áudio ao alto-falante depois de usar o microfone (iOS) */
+function restoreAudioOutput(){
+  if(navigator.audioSession){ try{ navigator.audioSession.type = "playback"; }catch(e){} }
+  if(ctx && ctx.state !== "running") ctx.resume();
 }
 
 /* ============================================================
@@ -881,7 +896,7 @@ $("#resample").addEventListener("pointerdown", ()=>{
   mr.start();
   resampling = { mr, timer: setTimeout(stopResample, 4000) };
   btn.classList.add("recording");
-  btn.textContent = "● GRAVANDO…";
+  btn.textContent = "● PARAR";
 });
 function stopResample(){
   if(!resampling) return;
@@ -992,6 +1007,17 @@ applyTheme();
 
 /* sem menu de contexto em toque longo (mobile) */
 document.addEventListener("contextmenu", e => e.preventDefault());
+
+/* retoma o áudio se o sistema o interromper (troca de aba, ligação, microfone) */
+document.addEventListener("visibilitychange", ()=>{
+  if(!document.hidden && ctx && ctx.state !== "running") ctx.resume();
+});
+window.addEventListener("pageshow", ()=>{
+  if(ctx && ctx.state !== "running") ctx.resume();
+});
+document.addEventListener("pointerdown", ()=>{
+  if(ctx && ctx.state !== "running") ctx.resume();
+}, true);
 
 setStepsMode(nsteps);
 initKb();
