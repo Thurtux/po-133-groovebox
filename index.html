@@ -89,6 +89,11 @@
   .step.now::after{content:"";position:absolute;inset:auto 30% 4px 30%;height:3px;border-radius:2px;
     background:var(--lcd-text);}
   .step:active{filter:brightness(1.3);}
+  .step.hidden{display:none;}
+  .mini-btn{padding:5px 9px;border-radius:6px;background:#232326;color:#9a9a9e;
+    font-size:8px;font-weight:700;letter-spacing:.1em;border:1px solid #39393d;}
+  .mini-btn:active{color:var(--orange);border-color:var(--orange);}
+  .mini-btn.recording{background:#c0392b;color:#fff;border-color:#c0392b;animation:blink 1s infinite;}
 
   /* ---------- pads ---------- */
   .pads{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
@@ -119,6 +124,28 @@
   .rec-btn.recording{background:#c0392b;color:#fff;animation:blink 1s infinite;}
   .rec-btn.recording i{background:#fff;}
   @keyframes blink{50%{opacity:.55;}}
+
+  /* ---------- teclado ---------- */
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+  .chip{padding:7px 11px;border-radius:7px;background:#232326;color:#9a9a9e;
+    font-size:9px;font-weight:700;letter-spacing:.1em;border:1px solid #39393d;}
+  .chip.sel{background:var(--orange);color:#fff;border-color:var(--orange);}
+  .kb{position:relative;display:flex;gap:2px;height:150px;touch-action:none;
+    background:#111;border-radius:8px;padding:3px;overflow:hidden;}
+  .key{cursor:pointer;}
+  .key.w{flex:1;background:#f7f5f0;border-radius:0 0 5px 5px;}
+  .key.b{position:absolute;top:3px;width:8.6%;height:58%;background:#141416;
+    border:1px solid #000;border-radius:0 0 4px 4px;z-index:2;}
+  .key.onk{background:var(--orange) !important;}
+  .kb-ctrls{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 8px;margin-top:10px;}
+  .ctl{display:flex;flex-direction:column;gap:4px;font-size:8px;font-weight:700;
+    letter-spacing:.12em;color:var(--gray-text);}
+  .ctl input[type=range]{width:100%;height:24px;margin:0;accent-color:var(--orange);}
+  .ctl.oct div{display:flex;gap:6px;}
+  .ctl.oct button{flex:1;height:24px;border-radius:6px;background:#3a3a3f;color:#f4f2ee;
+    font-size:13px;font-weight:700;}
+  .ctl.oct button:active{background:var(--orange);}
+  .ctl.oct b{color:var(--orange);}
 
   /* ---------- estilo / temas ---------- */
   .themes{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
@@ -181,7 +208,11 @@
     </div>
   </div>
 
-  <div class="section-label"><span>SEQUÊNCIA — 16 PASSOS</span><b id="seq-track">BUMBO</b></div>
+  <div class="section-label"><span>SEQUÊNCIA</span>
+    <span style="display:flex;gap:8px;align-items:center">
+      <button class="mini-btn" id="steps-mode">16 PASSOS</button><b id="seq-track">BUMBO</b>
+    </span>
+  </div>
   <div class="steps" id="steps"></div>
 
   <div class="section-label"><span>BEATS — bateria e percussão</span></div>
@@ -193,7 +224,23 @@
   <div class="section-label"><span>SINTETIZADORES — lead e pluck</span></div>
   <div class="pads" id="pads-syn"></div>
 
-  <div class="section-label"><span>SAMPLES — grave com o microfone</span></div>
+  <div class="section-label"><span>TECLADO — sintetizador com efeitos</span><b id="kb-engine-lb">ANALOG</b></div>
+  <div class="chips" id="kb-engines"></div>
+  <div class="kb" id="kb"></div>
+  <div class="kb-ctrls">
+    <div class="ctl oct"><span>OITAVA <b id="kb-oct">DÓ3</b></span>
+      <div><button id="oct-down">−</button><button id="oct-up">+</button></div>
+    </div>
+    <label class="ctl">FILTRO<input type="range" id="k-filter" min="0" max="1" step="0.01"></label>
+    <label class="ctl">ATAQUE<input type="range" id="k-attack" min="0" max="0.6" step="0.01"></label>
+    <label class="ctl">SOLTAR<input type="range" id="k-release" min="0.04" max="1.5" step="0.01"></label>
+    <label class="ctl">REVERB<input type="range" id="k-reverb" min="0" max="1" step="0.01"></label>
+    <label class="ctl">ECO<input type="range" id="k-echo" min="0" max="1" step="0.01"></label>
+  </div>
+
+  <div class="section-label"><span>SAMPLES — grave com o microfone</span>
+    <button class="mini-btn" id="resample">● RESAMPLE</button>
+  </div>
   <div class="slots" id="slots"></div>
 
   <div class="section-label"><span>ESTILO — deixe com a sua cara</span></div>
@@ -212,7 +259,8 @@
 
   <div class="hint">
     1 · toque num som &nbsp;→&nbsp; 2 · marque os passos &nbsp;→&nbsp; 3 · aperte play<br>
-    no PC use as teclas indicadas nos pads · aperte ● REC para gravar um sample (máx. 4s)
+    no PC use as teclas indicadas nos pads · ● REC grava pelo microfone (máx. 4s)<br>
+    toque o teclado por cima da batida e use ● RESAMPLE para gravar tudo num slot
   </div>
 </div>
 
@@ -353,24 +401,29 @@ function playSound(id, t){
 /* ============================================================
    ESTADO — padrão de 16 passos por som
    ============================================================ */
-const NSTEPS = 16;
+const MAXSTEPS = 32;
+let nsteps = 16;
 const allIds = SOUNDS.map(s=>s.id).concat(SAMPLE_IDS);
 let steps = {};
-allIds.forEach(id => steps[id] = new Array(NSTEPS).fill(false));
+allIds.forEach(id => steps[id] = new Array(MAXSTEPS).fill(false));
 let selected = "kick";
 let bpm = 120;
 let playing = false;
 
-// carrega padrão salvo
+// carrega padrão salvo (padrões antigos de 16 passos são estendidos para 32)
 try{
   const saved = JSON.parse(localStorage.getItem("po133") || "null");
   if(saved){
     bpm = saved.bpm || 120;
-    allIds.forEach(id => { if(saved.steps && saved.steps[id]) steps[id] = saved.steps[id]; });
+    if(saved.nsteps === 32) nsteps = 32;
+    allIds.forEach(id => {
+      const a = saved.steps && saved.steps[id];
+      if(a) steps[id] = a.concat(new Array(MAXSTEPS).fill(false)).slice(0, MAXSTEPS);
+    });
   }
 }catch(e){}
 function save(){
-  try{ localStorage.setItem("po133", JSON.stringify({bpm, steps})); }catch(e){}
+  try{ localStorage.setItem("po133", JSON.stringify({bpm, nsteps, steps})); }catch(e){}
 }
 
 /* ============================================================
@@ -389,7 +442,7 @@ function soundName(id){
 
 // passos
 const stepBtns = [];
-for(let i=0;i<NSTEPS;i++){
+for(let i=0;i<MAXSTEPS;i++){
   const b = document.createElement("button");
   b.className = "step" + (i%4===0 ? " beat" : "");
   b.setAttribute("aria-label","passo "+(i+1));
@@ -401,6 +454,15 @@ for(let i=0;i<NSTEPS;i++){
   stepsEl.appendChild(b);
   stepBtns.push(b);
 }
+// modo 16 ou 32 passos
+function setStepsMode(n){
+  nsteps = n;
+  current = current % nsteps;
+  stepBtns.forEach((b,i)=> b.classList.toggle("hidden", i >= nsteps));
+  $("#steps-mode").textContent = n + " PASSOS";
+  save();
+}
+$("#steps-mode").addEventListener("pointerdown", ()=> setStepsMode(nsteps === 16 ? 32 : 16));
 function refreshSteps(){
   const row = steps[selected];
   stepBtns.forEach((b,i)=> b.classList.toggle("on", row[i]));
@@ -519,7 +581,7 @@ function tick(){
   while(nextTime < ctx.currentTime + 0.12){
     scheduleStep(current, nextTime);
     nextTime += stepDur();
-    current = (current + 1) % NSTEPS;
+    current = (current + 1) % nsteps;
   }
 }
 function togglePlay(){
@@ -548,6 +610,7 @@ function setBpm(v){
   bpm = Math.min(240, Math.max(50, v));
   $("#bpm-num").textContent = bpm;
   $("#lcd-bpm").textContent = bpm;
+  applyKb(); // eco do teclado é sincronizado com o BPM
   save();
 }
 let holdTimer = null;
@@ -565,11 +628,11 @@ setBpm(bpm);
 
 /* limpar */
 $("#clear-track").addEventListener("pointerdown", ()=>{
-  steps[selected] = new Array(NSTEPS).fill(false);
+  steps[selected] = new Array(MAXSTEPS).fill(false);
   refreshSteps(); save();
 });
 $("#clear-all").addEventListener("pointerdown", ()=>{
-  allIds.forEach(id => steps[id] = new Array(NSTEPS).fill(false));
+  allIds.forEach(id => steps[id] = new Array(MAXSTEPS).fill(false));
   refreshSteps(); save();
 });
 
@@ -580,6 +643,252 @@ document.addEventListener("keydown", e=>{
   const s = SOUNDS.find(x=>x.ky === e.key.toLowerCase());
   if(s) trigger(s.id);
 });
+
+/* ============================================================
+   TECLADO — sintetizador polifônico com 5 motores de som,
+   filtro, envelope, reverb (convolução) e eco sincronizado
+   ============================================================ */
+const KB_WHITE = [0,2,4,5,7,9,11,12];
+const KB_BLACK = [[1,0],[3,1],[6,3],[8,4],[10,5]]; // [semitom, índice da tecla branca à esquerda]
+const NOTE_NM = ["DÓ","DÓ#","RÉ","RÉ#","MI","FÁ","FÁ#","SOL","SOL#","LÁ","LÁ#","SI"];
+
+let kbCfg = { engine:"analog", octave:3, filter:0.8, attack:0.02, release:0.3, reverb:0.25, echo:0 };
+try{
+  const t = JSON.parse(localStorage.getItem("po133-kb") || "null");
+  if(t && t.engine) kbCfg = Object.assign(kbCfg, t);
+}catch(e){}
+function saveKb(){
+  try{ localStorage.setItem("po133-kb", JSON.stringify(kbCfg)); }catch(e){}
+}
+
+/* barramento de efeitos do teclado (criado no primeiro toque)
+   var (não let): setBpm chama applyKb antes desta linha executar */
+var kbNodes = null;
+function makeImpulse(dur, decay){
+  const len = Math.floor(ctx.sampleRate * dur);
+  const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+  for(let c=0;c<2;c++){
+    const d = buf.getChannelData(c);
+    for(let i=0;i<len;i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/len, decay);
+  }
+  return buf;
+}
+function kbAudio(){
+  audio();
+  if(kbNodes) return kbNodes;
+  const filter = ctx.createBiquadFilter(); filter.type = "lowpass"; filter.Q.value = 1.5;
+  const dry = ctx.createGain();
+  const conv = ctx.createConvolver(); conv.buffer = makeImpulse(2.2, 2.5);
+  const revWet = ctx.createGain();
+  const dly = ctx.createDelay(1.5);
+  const fb = ctx.createGain(); fb.gain.value = 0.38;
+  const echoWet = ctx.createGain();
+  filter.connect(dry); dry.connect(master);
+  filter.connect(conv); conv.connect(revWet); revWet.connect(master);
+  filter.connect(dly); dly.connect(echoWet); echoWet.connect(master);
+  dly.connect(fb); fb.connect(dly);
+  kbNodes = { filter, revWet, echoWet, dly };
+  applyKb();
+  return kbNodes;
+}
+function applyKb(){
+  if(!kbNodes) return;
+  kbNodes.filter.frequency.value = 180 * Math.pow(45, kbCfg.filter); // 180 Hz a ~8 kHz
+  kbNodes.revWet.gain.value = kbCfg.reverb * 0.9;
+  kbNodes.echoWet.gain.value = kbCfg.echo * 0.7;
+  kbNodes.dly.delayTime.value = Math.min(1.2, (60/bpm) * 0.75); // colcheia pontuada
+}
+
+/* motores de som — cada um devolve os osciladores criados */
+const KB_ENGINES = [
+  {key:"analog", nm:"ANALOG", build:(f,out,t)=>[-5,5].map(c=>{
+    const o=ctx.createOscillator(); o.type="sawtooth"; o.frequency.value=f; o.detune.value=c;
+    const g=ctx.createGain(); g.gain.value=0.2; o.connect(g); g.connect(out); o.start(t); return o;
+  })},
+  {key:"quadra", nm:"QUADRA", build:(f,out,t)=>{
+    const o=ctx.createOscillator(); o.type="square"; o.frequency.value=f;
+    const g=ctx.createGain(); g.gain.value=0.15; o.connect(g); g.connect(out);
+    const s=ctx.createOscillator(); s.type="sine"; s.frequency.value=f/2;
+    const g2=ctx.createGain(); g2.gain.value=0.2; s.connect(g2); g2.connect(out);
+    o.start(t); s.start(t); return [o,s];
+  }},
+  {key:"fm", nm:"FM", build:(f,out,t)=>{
+    const car=ctx.createOscillator(); car.type="sine"; car.frequency.value=f;
+    const mod=ctx.createOscillator(); mod.type="sine"; mod.frequency.value=f*2;
+    const mg=ctx.createGain();
+    mg.gain.setValueAtTime(f*2.2, t);
+    mg.gain.exponentialRampToValueAtTime(f*0.3, t+0.6);
+    mod.connect(mg); mg.connect(car.frequency);
+    const g=ctx.createGain(); g.gain.value=0.3; car.connect(g); g.connect(out);
+    car.start(t); mod.start(t); return [car,mod];
+  }},
+  {key:"pluck", nm:"PLUCK", build:(f,out,t)=>{
+    const o=ctx.createOscillator(); o.type="sawtooth"; o.frequency.value=f;
+    const fl=ctx.createBiquadFilter(); fl.type="lowpass"; fl.Q.value=3;
+    fl.frequency.setValueAtTime(4200, t);
+    fl.frequency.exponentialRampToValueAtTime(280, t+0.16);
+    const g=ctx.createGain();
+    g.gain.setValueAtTime(0.38, t);
+    g.gain.exponentialRampToValueAtTime(0.02, t+1.4);
+    o.connect(fl); fl.connect(g); g.connect(out); o.start(t); return [o];
+  }},
+  {key:"cordas", nm:"CORDAS", build:(f,out,t)=>[-9,0,9].map(c=>{
+    const o=ctx.createOscillator(); o.type="sawtooth"; o.frequency.value=f; o.detune.value=c;
+    const g=ctx.createGain(); g.gain.value=0.11; o.connect(g); g.connect(out); o.start(t); return o;
+  })},
+];
+
+/* vozes ativas: um dedo (pointer) = uma voz, com deslize entre teclas */
+const kbVoices = new Map();
+function kbNoteOn(pid, midi, keyEl){
+  const n = kbAudio();
+  const f = 440 * Math.pow(2, (midi-69)/12);
+  const t = ctx.currentTime;
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0.0001, t);
+  env.gain.exponentialRampToValueAtTime(1, t + Math.max(0.005, kbCfg.attack));
+  env.connect(n.filter);
+  const eng = KB_ENGINES.find(e=>e.key===kbCfg.engine);
+  const oscs = eng.build(f, env, t);
+  kbVoices.set(pid, { midi, env, oscs, keyEl });
+  keyEl.classList.add("onk");
+  $("#lcd-sound").textContent = eng.nm + " " + NOTE_NM[midi%12] + (Math.floor(midi/12)-1);
+  if(navigator.vibrate) navigator.vibrate(6);
+}
+function kbNoteOff(pid){
+  const v = kbVoices.get(pid);
+  if(!v) return;
+  kbVoices.delete(pid);
+  v.keyEl.classList.remove("onk");
+  const t = ctx.currentTime, rel = Math.max(0.04, kbCfg.release);
+  v.env.gain.cancelScheduledValues(t);
+  v.env.gain.setValueAtTime(Math.max(v.env.gain.value, 0.0001), t);
+  v.env.gain.exponentialRampToValueAtTime(0.0001, t + rel);
+  v.oscs.forEach(o=>{ try{ o.stop(t + rel + 0.1); }catch(e){} });
+}
+function kbAllOff(){ Array.from(kbVoices.keys()).forEach(kbNoteOff); }
+
+/* teclas */
+const kbEl = $("#kb");
+function buildKeys(){
+  kbAllOff();
+  kbEl.innerHTML = "";
+  const base = 12 * (kbCfg.octave + 1); // MIDI do DÓ da oitava atual
+  KB_WHITE.forEach(st=>{
+    const k = document.createElement("div");
+    k.className = "key w"; k.dataset.midi = base + st;
+    kbEl.appendChild(k);
+  });
+  KB_BLACK.forEach(([st, wi])=>{
+    const k = document.createElement("div");
+    k.className = "key b"; k.dataset.midi = base + st;
+    k.style.left = ((wi+1) * 12.5 - 4.3) + "%";
+    kbEl.appendChild(k);
+  });
+  $("#kb-oct").textContent = "DÓ" + kbCfg.octave;
+}
+function keyAt(x, y){
+  const el = document.elementFromPoint(x, y);
+  return el ? el.closest(".key") : null;
+}
+kbEl.addEventListener("pointerdown", e=>{
+  e.preventDefault();
+  try{ kbEl.setPointerCapture(e.pointerId); }catch(err){}
+  const k = keyAt(e.clientX, e.clientY);
+  if(k) kbNoteOn(e.pointerId, +k.dataset.midi, k);
+});
+kbEl.addEventListener("pointermove", e=>{
+  const v = kbVoices.get(e.pointerId);
+  if(!v) return;
+  const k = keyAt(e.clientX, e.clientY);
+  if(k && +k.dataset.midi !== v.midi){
+    kbNoteOff(e.pointerId);
+    kbNoteOn(e.pointerId, +k.dataset.midi, k);
+  }
+});
+["pointerup","pointercancel"].forEach(ev=>
+  kbEl.addEventListener(ev, e=> kbNoteOff(e.pointerId)));
+
+/* seletor de motor de som */
+const enginesEl = $("#kb-engines");
+KB_ENGINES.forEach(eng=>{
+  const b = document.createElement("button");
+  b.className = "chip"; b.dataset.key = eng.key;
+  b.textContent = eng.nm;
+  b.addEventListener("pointerdown", ()=>{
+    kbCfg.engine = eng.key;
+    $("#kb-engine-lb").textContent = eng.nm;
+    document.querySelectorAll("#kb-engines .chip").forEach(c=>
+      c.classList.toggle("sel", c.dataset.key === eng.key));
+    saveKb();
+  });
+  enginesEl.appendChild(b);
+});
+
+/* oitava e controles deslizantes */
+$("#oct-down").addEventListener("pointerdown", ()=>{
+  kbCfg.octave = Math.max(1, kbCfg.octave - 1); buildKeys(); saveKb();
+});
+$("#oct-up").addEventListener("pointerdown", ()=>{
+  kbCfg.octave = Math.min(5, kbCfg.octave + 1); buildKeys(); saveKb();
+});
+[["k-filter","filter"],["k-attack","attack"],["k-release","release"],
+ ["k-reverb","reverb"],["k-echo","echo"]].forEach(([id, field])=>{
+  const el = $("#"+id);
+  el.value = kbCfg[field];
+  el.addEventListener("input", e=>{
+    kbCfg[field] = parseFloat(e.target.value);
+    applyKb(); saveKb();
+  });
+});
+
+function initKb(){
+  buildKeys();
+  $("#kb-engine-lb").textContent = KB_ENGINES.find(e=>e.key===kbCfg.engine).nm;
+  document.querySelectorAll("#kb-engines .chip").forEach(c=>
+    c.classList.toggle("sel", c.dataset.key === kbCfg.engine));
+}
+
+/* ============================================================
+   RESAMPLE — grava o que está saindo do groovebox num slot
+   ============================================================ */
+let resampling = null, streamDest = null;
+$("#resample").addEventListener("pointerdown", ()=>{
+  if(resampling){ stopResample(); return; }
+  audio();
+  if(!streamDest){
+    streamDest = ctx.createMediaStreamDestination();
+    master.connect(streamDest);
+  }
+  const id = SAMPLE_IDS.find(i=>!samples[i]) || SAMPLE_IDS[SAMPLE_IDS.length-1];
+  const btn = $("#resample");
+  const mr = new MediaRecorder(streamDest.stream);
+  const chunks = [];
+  mr.ondataavailable = e => { if(e.data.size) chunks.push(e.data); };
+  mr.onstop = async ()=>{
+    btn.classList.remove("recording");
+    btn.textContent = "● RESAMPLE";
+    try{
+      const buf = await new Blob(chunks).arrayBuffer();
+      samples[id] = await ctx.decodeAudioData(buf);
+      const pad = padEls[id];
+      pad.classList.add("has");
+      pad.querySelector(".nm").textContent = "SAMPLE ✓";
+    }catch(e){
+      alert("Não deu para processar a gravação. Tente de novo.");
+    }
+  };
+  mr.start();
+  resampling = { mr, timer: setTimeout(stopResample, 4000) };
+  btn.classList.add("recording");
+  btn.textContent = "● GRAVANDO…";
+});
+function stopResample(){
+  if(!resampling) return;
+  clearTimeout(resampling.timer);
+  if(resampling.mr.state !== "inactive") resampling.mr.stop();
+  resampling = null;
+}
 
 /* ============================================================
    ESTILO — temas prontos + cores personalizadas
@@ -684,6 +993,8 @@ applyTheme();
 /* sem menu de contexto em toque longo (mobile) */
 document.addEventListener("contextmenu", e => e.preventDefault());
 
+setStepsMode(nsteps);
+initKb();
 refreshSelection();
 })();
 </script>
