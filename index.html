@@ -100,10 +100,12 @@
   .pads{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
   .pad{aspect-ratio:1.35/1;border-radius:10px;background:var(--pad);color:var(--pad-text);
     box-shadow:0 4px 0 var(--pad-dark);display:flex;flex-direction:column;align-items:center;
-    justify-content:center;gap:3px;padding:4px;}
+    justify-content:center;gap:3px;padding:4px;
+    border:3px solid transparent;} /* borda invisível reservada para a seleção:
+    não muda o tamanho (border-box) e segue os cantos arredondados em qualquer navegador */
   .pad:active,.pad.hit{transform:translateY(2px);box-shadow:0 2px 0 var(--pad-dark);}
   .pad.hit{background:#fff;}
-  .pad.sel{outline:3px solid var(--orange);outline-offset:-3px;}
+  .pad.sel{border-color:var(--orange);}
   .pad .nm{font-size:10px;font-weight:700;letter-spacing:.05em;text-align:center;line-height:1.1;}
   .pad .ky{font-size:8px;color:#8a877f;font-family:ui-monospace,Menlo,monospace;}
   .pad.snd-bass{background:var(--pad-bass);box-shadow:0 4px 0 var(--pad-bass-dark);}
@@ -114,7 +116,7 @@
   /* ---------- sampler ---------- */
   .slots{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
   .slot{display:flex;flex-direction:column;gap:6px;}
-  .slot .pad{aspect-ratio:1.6/1;background:#3a3a3f;color:#77777d;box-shadow:0 4px 0 #232326;}
+  .slot .pad{aspect-ratio:auto;height:52px;background:#3a3a3f;color:#77777d;box-shadow:0 4px 0 #232326;}
   .slot .pad.has{background:var(--pad);color:var(--pad-text);box-shadow:0 4px 0 var(--pad-dark);}
   .slot .pad:active{box-shadow:0 2px 0 #232326;}
   .slot .pad.has:active,.slot .pad.has.hit{box-shadow:0 2px 0 var(--pad-dark);}
@@ -1098,6 +1100,23 @@ window.addEventListener("pageshow", ()=>{
 document.addEventListener("pointerdown", ()=>{
   if(ctx && ctx.state !== "running") ctx.resume();
 }, true);
+
+/* iOS Safari só aceita destravar o áudio em eventos de FIM de gesto
+   (touchend/click) — pointerdown NÃO conta como ativação. Por isso,
+   em todo fim de toque criamos/retomamos o contexto e disparamos um
+   buffer mudo, que é o "chute" clássico para destravar o alto-falante. */
+function unlockAudio(){
+  audio(); // cria e/ou retoma dentro de um gesto que o iOS aceita
+  try{
+    const b = ctx.createBuffer(1, 1, 22050);
+    const s = ctx.createBufferSource();
+    s.buffer = b; s.connect(ctx.destination); s.start(0);
+  }catch(e){}
+}
+["touchend","pointerup","mouseup","click","keydown"].forEach(ev=>
+  document.addEventListener(ev, ()=>{
+    if(!ctx || ctx.state !== "running") unlockAudio();
+  }, {capture:true}));
 
 setStepsMode(nsteps);
 initKb();
