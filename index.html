@@ -219,7 +219,13 @@
   </div>
   <div class="steps" id="steps"></div>
 
-  <div class="section-label"><span>BEATS — bateria e percussão</span></div>
+  <div class="section-label"><span>BEATS — bateria e percussão</span>
+    <span style="display:flex;gap:6px;align-items:center">
+      <button class="mini-btn" id="load-groove">RITMO PRONTO</button>
+      <b id="kit-lb">CLÁSSICO</b>
+    </span>
+  </div>
+  <div class="chips" id="kits"></div>
   <div class="pads" id="pads-beat"></div>
 
   <div class="section-label"><span>GRAVES — sub 808 e baixo ácido</span></div>
@@ -363,21 +369,117 @@ function pluck(t, freq){
   o.start(t); o.stop(t + 0.25);
 }
 
-/* Lista de sons: id, nome, tecla do PC, grupo, função */
+/* ============================================================
+   KITS — o mesmo pad soa diferente conforme o gênero musical
+   ============================================================ */
+const KITS = [
+  {key:"classico", nm:"CLÁSSICO", s:{
+    kick:t=>{ osc(t,"sine",150,42,0.45,1.1); noise(t,0.03,"lowpass",900,0.5); },
+    k808:t=>{ osc(t,"sine",110,36,0.8,1.15); },
+    snare:t=>{ noise(t,0.2,"highpass",1400,0.7); osc(t,"triangle",190,120,0.12,0.6); },
+    snar2:t=>{ noise(t,0.13,"bandpass",2400,0.8); osc(t,"triangle",240,160,0.08,0.5); },
+    clap:t=>{ [0,0.02,0.045].forEach(d=>noise(t+d,0.09,"bandpass",1600,0.55)); },
+    hat:t=>{ noise(t,0.06,"highpass",7500,0.45); },
+    ohat:t=>{ noise(t,0.35,"highpass",6500,0.4); },
+    shak:t=>{ noise(t,0.08,"bandpass",5800,0.3); },
+    tom:t=>{ osc(t,"sine",210,75,0.3,0.9); },
+    tomg:t=>{ osc(t,"sine",140,52,0.4,0.95); },
+    rim:t=>{ osc(t,"square",1750,0,0.045,0.3); },
+    cow:t=>{ osc(t,"square",540,0,0.18,0.25); osc(t,"square",800,0,0.18,0.25); },
+  }},
+  {key:"rap", nm:"RAP", s:{ /* boom bap: bumbo redondo, caixa gorda, chimbal empoeirado */
+    kick:t=>{ osc(t,"sine",120,45,0.35,1.15); noise(t,0.02,"lowpass",400,0.6); },
+    k808:t=>{ osc(t,"sine",85,38,0.6,1.1); },
+    snare:t=>{ noise(t,0.18,"bandpass",1800,0.65); osc(t,"triangle",165,110,0.14,0.7); },
+    snar2:t=>{ noise(t,0.25,"highpass",1100,0.6); osc(t,"triangle",150,100,0.1,0.5); },
+    clap:t=>{ [0,0.025,0.05].forEach(d=>noise(t+d,0.12,"bandpass",1200,0.6)); },
+    hat:t=>{ noise(t,0.05,"highpass",6000,0.35); },
+    ohat:t=>{ noise(t,0.28,"highpass",5500,0.35); },
+    shak:t=>{ noise(t,0.1,"bandpass",4500,0.25); },
+    tom:t=>{ osc(t,"sine",180,70,0.28,0.85); },
+    tomg:t=>{ osc(t,"sine",120,50,0.35,0.9); },
+    rim:t=>{ osc(t,"square",1400,0,0.05,0.3); },
+    cow:t=>{ osc(t,"square",500,0,0.15,0.2); osc(t,"square",750,0,0.15,0.2); },
+  }},
+  {key:"trap", nm:"TRAP", s:{ /* 808 longo com glide, caixa estalada, chimbal brilhante */
+    kick:t=>{ osc(t,"sine",160,38,0.7,1.2); },
+    k808:t=>{ osc(t,"sine",95,30,1.0,1.2); },
+    snare:t=>{ noise(t,0.15,"highpass",2000,0.8); osc(t,"triangle",220,150,0.08,0.5); },
+    snar2:t=>{ noise(t,0.1,"bandpass",3000,0.8); },
+    clap:t=>{ [0,0.018,0.04].forEach(d=>noise(t+d,0.1,"bandpass",2000,0.7)); },
+    hat:t=>{ noise(t,0.035,"highpass",8500,0.45); },
+    ohat:t=>{ noise(t,0.3,"highpass",7500,0.4); },
+    shak:t=>{ noise(t,0.06,"bandpass",6500,0.3); },
+    tom:t=>{ osc(t,"sine",240,90,0.25,0.9); },
+    tomg:t=>{ osc(t,"sine",150,55,0.35,1.0); },
+    rim:t=>{ osc(t,"square",2000,0,0.04,0.3); },
+    cow:t=>{ osc(t,"square",600,0,0.15,0.22); osc(t,"square",900,0,0.15,0.22); },
+  }},
+  {key:"pop", nm:"POP", s:{ /* bumbo seco moderno, palmão grande, chimbal limpo */
+    kick:t=>{ osc(t,"sine",140,48,0.3,1.05); noise(t,0.02,"lowpass",1200,0.5); },
+    k808:t=>{ osc(t,"sine",100,40,0.5,1.0); },
+    snare:t=>{ noise(t,0.16,"bandpass",1700,0.7); osc(t,"triangle",200,140,0.1,0.55); },
+    snar2:t=>{ noise(t,0.12,"highpass",2200,0.7); },
+    clap:t=>{ [0,0.02,0.04,0.065].forEach(d=>noise(t+d,0.11,"bandpass",1600,0.6)); },
+    hat:t=>{ noise(t,0.05,"highpass",8000,0.4); },
+    ohat:t=>{ noise(t,0.32,"highpass",7000,0.38); },
+    shak:t=>{ noise(t,0.08,"bandpass",5500,0.28); },
+    tom:t=>{ osc(t,"sine",220,85,0.28,0.85); },
+    tomg:t=>{ osc(t,"sine",140,60,0.35,0.9); },
+    rim:t=>{ osc(t,"square",1750,0,0.045,0.28); },
+    cow:t=>{ osc(t,"square",540,0,0.16,0.2); osc(t,"square",800,0,0.16,0.2); },
+  }},
+  {key:"funk", nm:"FUNK", s:{ /* tamborzão: bumbo socado, caixa seca, palma na frente */
+    kick:t=>{ osc(t,"sine",130,40,0.4,1.2); noise(t,0.04,"lowpass",700,0.6); },
+    k808:t=>{ osc(t,"sine",90,35,0.7,1.15); },
+    snare:t=>{ noise(t,0.09,"highpass",2500,0.85); osc(t,"triangle",240,180,0.05,0.5); },
+    snar2:t=>{ noise(t,0.12,"bandpass",2200,0.75); osc(t,"triangle",200,150,0.06,0.4); },
+    clap:t=>{ [0,0.022,0.048].forEach(d=>noise(t+d,0.1,"bandpass",1800,0.7)); },
+    hat:t=>{ noise(t,0.045,"highpass",7000,0.4); },
+    ohat:t=>{ noise(t,0.25,"highpass",6000,0.35); },
+    shak:t=>{ noise(t,0.07,"bandpass",5000,0.28); },
+    tom:t=>{ osc(t,"sine",200,80,0.3,0.9); },
+    tomg:t=>{ osc(t,"sine",130,50,0.4,1.0); },
+    rim:t=>{ osc(t,"square",1600,0,0.05,0.32); },
+    cow:t=>{ osc(t,"square",560,0,0.18,0.25); osc(t,"square",840,0,0.18,0.25); },
+  }},
+  {key:"eletro", nm:"ELETRO", s:{ /* house/techno: kick com clique, clap 909, aberto longo */
+    kick:t=>{ osc(t,"sine",145,45,0.4,1.2); noise(t,0.015,"lowpass",3000,0.7); },
+    k808:t=>{ osc(t,"sine",105,42,0.55,1.05); },
+    snare:t=>{ noise(t,0.22,"highpass",1500,0.7); osc(t,"triangle",180,120,0.1,0.5); },
+    snar2:t=>{ noise(t,0.14,"bandpass",2600,0.75); },
+    clap:t=>{ [0,0.02,0.04,0.06].forEach(d=>noise(t+d,0.14,"bandpass",1500,0.65)); },
+    hat:t=>{ noise(t,0.04,"highpass",9000,0.45); },
+    ohat:t=>{ noise(t,0.4,"highpass",8000,0.4); },
+    shak:t=>{ noise(t,0.06,"bandpass",7000,0.3); },
+    tom:t=>{ osc(t,"sine",200,95,0.3,0.85); },
+    tomg:t=>{ osc(t,"sine",130,60,0.38,0.9); },
+    rim:t=>{ osc(t,"square",1900,0,0.04,0.3); },
+    cow:t=>{ osc(t,"square",660,0,0.16,0.22); osc(t,"square",990,0,0.16,0.22); },
+  }},
+];
+let kit = KITS[0];
+try{
+  const k = localStorage.getItem("po133-kit");
+  if(k) kit = KITS.find(x=>x.key===k) || KITS[0];
+}catch(e){}
+
+/* Lista de sons: id, nome, tecla do PC, grupo, função
+   (os beats delegam para o kit de gênero selecionado) */
 const SOUNDS = [
   /* --- BEATS --- */
-  {id:"kick",  nm:"BUMBO",     ky:"1", gp:"beat", fn:t=>{ osc(t,"sine",150,42,0.45,1.1); noise(t,0.03,"lowpass",900,0.5); }},
-  {id:"k808",  nm:"BUMBO 808", ky:"2", gp:"beat", fn:t=>{ osc(t,"sine",110,36,0.8,1.15); }},
-  {id:"snare", nm:"CAIXA",     ky:"3", gp:"beat", fn:t=>{ noise(t,0.2,"highpass",1400,0.7); osc(t,"triangle",190,120,0.12,0.6); }},
-  {id:"snar2", nm:"CAIXA 2",   ky:"4", gp:"beat", fn:t=>{ noise(t,0.13,"bandpass",2400,0.8); osc(t,"triangle",240,160,0.08,0.5); }},
-  {id:"clap",  nm:"PALMA",     ky:"5", gp:"beat", fn:t=>{ [0,0.02,0.045].forEach(d=>noise(t+d,0.09,"bandpass",1600,0.55)); }},
-  {id:"hat",   nm:"CHIMBAL",   ky:"6", gp:"beat", fn:t=>{ noise(t,0.06,"highpass",7500,0.45); }},
-  {id:"ohat",  nm:"CH.ABERTO", ky:"7", gp:"beat", fn:t=>{ noise(t,0.35,"highpass",6500,0.4); }},
-  {id:"shak",  nm:"SHAKER",    ky:"8", gp:"beat", fn:t=>{ noise(t,0.08,"bandpass",5800,0.3); }},
-  {id:"tom",   nm:"TOM",       ky:"q", gp:"beat", fn:t=>{ osc(t,"sine",210,75,0.3,0.9); }},
-  {id:"tomg",  nm:"TOM GRAVE", ky:"w", gp:"beat", fn:t=>{ osc(t,"sine",140,52,0.4,0.95); }},
-  {id:"rim",   nm:"RIM",       ky:"e", gp:"beat", fn:t=>{ osc(t,"square",1750,0,0.045,0.3); }},
-  {id:"cow",   nm:"COWBELL",   ky:"r", gp:"beat", fn:t=>{ osc(t,"square",540,0,0.18,0.25); osc(t,"square",800,0,0.18,0.25); }},
+  {id:"kick",  nm:"BUMBO",     ky:"1", gp:"beat", fn:t=>kit.s.kick(t)},
+  {id:"k808",  nm:"BUMBO 808", ky:"2", gp:"beat", fn:t=>kit.s.k808(t)},
+  {id:"snare", nm:"CAIXA",     ky:"3", gp:"beat", fn:t=>kit.s.snare(t)},
+  {id:"snar2", nm:"CAIXA 2",   ky:"4", gp:"beat", fn:t=>kit.s.snar2(t)},
+  {id:"clap",  nm:"PALMA",     ky:"5", gp:"beat", fn:t=>kit.s.clap(t)},
+  {id:"hat",   nm:"CHIMBAL",   ky:"6", gp:"beat", fn:t=>kit.s.hat(t)},
+  {id:"ohat",  nm:"CH.ABERTO", ky:"7", gp:"beat", fn:t=>kit.s.ohat(t)},
+  {id:"shak",  nm:"SHAKER",    ky:"8", gp:"beat", fn:t=>kit.s.shak(t)},
+  {id:"tom",   nm:"TOM",       ky:"q", gp:"beat", fn:t=>kit.s.tom(t)},
+  {id:"tomg",  nm:"TOM GRAVE", ky:"w", gp:"beat", fn:t=>kit.s.tomg(t)},
+  {id:"rim",   nm:"RIM",       ky:"e", gp:"beat", fn:t=>kit.s.rim(t)},
+  {id:"cow",   nm:"COWBELL",   ky:"r", gp:"beat", fn:t=>kit.s.cow(t)},
   /* --- GRAVES --- */
   {id:"u1", nm:"SUB DÓ",   ky:"a", gp:"bass", fn:t=>sub(t,65.41)},
   {id:"u2", nm:"SUB MI♭",  ky:"s", gp:"bass", fn:t=>sub(t,77.78)},
@@ -654,6 +756,57 @@ function bindHold(el, fn){
 bindHold($("#bpm-up"),   ()=> setBpm(bpm+1));
 bindHold($("#bpm-down"), ()=> setBpm(bpm-1));
 setBpm(bpm);
+
+/* ============================================================
+   KITS — seletor de gênero + ritmo pronto
+   ============================================================ */
+const GROOVES = {
+  classico:{ bpm:120, p:{ kick:[0,8], snare:[4,12], hat:[0,2,4,6,8,10,12,14] }},
+  rap:     { bpm:90,  p:{ kick:[0,7,10], snare:[4,12], hat:[0,2,4,6,8,10,12,14], rim:[15] }},
+  trap:    { bpm:140, p:{ k808:[0,6,10], clap:[8], hat:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15], ohat:[12], tomg:[15] }},
+  pop:     { bpm:118, p:{ kick:[0,8], clap:[4,12], hat:[0,2,4,6,8,10,12,14], ohat:[14], shak:[1,5,9,13] }},
+  funk:    { bpm:130, p:{ kick:[0,3,6,8,11,14], snar2:[4,12], hat:[0,2,4,6,8,10,12,14], clap:[12] }},
+  eletro:  { bpm:124, p:{ kick:[0,4,8,12], clap:[4,12], hat:[0,2,4,6,8,10,12,14], ohat:[2,6,10,14] }},
+};
+const BEAT_IDS = SOUNDS.filter(s=>s.gp==="beat").map(s=>s.id);
+
+const kitsEl = $("#kits");
+KITS.forEach(k=>{
+  const b = document.createElement("button");
+  b.className = "chip"; b.dataset.key = k.key;
+  b.textContent = k.nm;
+  b.addEventListener("pointerdown", ()=>{
+    kit = k;
+    $("#kit-lb").textContent = k.nm;
+    $("#lcd-sound").textContent = "KIT " + k.nm;
+    document.querySelectorAll("#kits .chip").forEach(c=>
+      c.classList.toggle("sel", c.dataset.key === k.key));
+    try{ localStorage.setItem("po133-kit", k.key); }catch(e){}
+  });
+  kitsEl.appendChild(b);
+});
+function refreshKit(){
+  $("#kit-lb").textContent = kit.nm;
+  document.querySelectorAll("#kits .chip").forEach(c=>
+    c.classList.toggle("sel", c.dataset.key === kit.key));
+}
+
+/* escreve o groove típico do gênero nas trilhas de bateria
+   (baixo, sintetizador, samples e teclado ficam como estão) */
+$("#load-groove").addEventListener("pointerdown", ()=>{
+  const g = GROOVES[kit.key];
+  if(!g) return;
+  BEAT_IDS.forEach(id => steps[id] = new Array(MAXSTEPS).fill(false));
+  Object.keys(g.p).forEach(id=>{
+    g.p[id].forEach(i=>{
+      steps[id][i] = true;
+      steps[id][i+16] = true; // repete na segunda metade para o modo 32 passos
+    });
+  });
+  setBpm(g.bpm);
+  refreshSteps(); save();
+  $("#lcd-sound").textContent = "RITMO " + kit.nm;
+});
 
 /* limpar */
 $("#clear-track").addEventListener("pointerdown", ()=>{
@@ -1120,6 +1273,7 @@ function unlockAudio(){
 
 setStepsMode(nsteps);
 initKb();
+refreshKit();
 refreshSelection();
 })();
 </script>

@@ -7,6 +7,7 @@ Um único arquivo HTML, zero dependências — todos os sons são sintetizados e
 ## Recursos
 
 - **28 sons sintetizados**: 12 beats (bumbo, bumbo 808, caixas, palma, chimbais, shaker, tons, rim, cowbell), 8 graves (sub estilo 808 + baixo ácido) e 8 sintetizadores (lead + pluck)
+- **6 kits de gênero** (clássico, rap, trap, pop, funk, eletro): os mesmos pads mudam de timbre conforme o estilo, e o botão RITMO PRONTO carrega o groove típico com o BPM certo
 - **Sequenciador de 16 ou 32 passos** estilo Pocket Operator, uma trilha por som
 - **Teclado sintetizador polifônico** com 5 motores (analog, quadra, FM, pluck, cordas), glissando, filtro, envelope, reverb de convolução e eco sincronizado com o BPM
 - **Gravação do teclado no beat**: arme ● GRAVAR, dê play e toque — as notas entram quantizadas no compasso e ficam em loop
