@@ -226,7 +226,13 @@
   <div class="section-label"><span>SINTETIZADORES — lead e pluck</span></div>
   <div class="pads" id="pads-syn"></div>
 
-  <div class="section-label"><span>TECLADO — sintetizador com efeitos</span><b id="kb-engine-lb">ANALOG</b></div>
+  <div class="section-label"><span>TECLADO — sintetizador com efeitos</span>
+    <span style="display:flex;gap:6px;align-items:center">
+      <button class="mini-btn" id="kb-rec">● GRAVAR</button>
+      <button class="mini-btn" id="kb-clear">APAGAR</button>
+      <b id="kb-engine-lb">ANALOG</b>
+    </span>
+  </div>
   <div class="chips" id="kb-engines"></div>
   <div class="kb" id="kb"></div>
   <div class="kb-ctrls">
@@ -261,8 +267,8 @@
 
   <div class="hint">
     1 · toque num som &nbsp;→&nbsp; 2 · marque os passos &nbsp;→&nbsp; 3 · aperte play<br>
-    no PC use as teclas indicadas nos pads · ● REC grava pelo microfone (máx. 4s)<br>
-    toque o teclado por cima da batida e use ● RESAMPLE para gravar tudo num slot
+    ● GRAVAR no teclado: com a batida rodando, as notas que você tocar entram no beat<br>
+    ● REC grava pelo microfone · ● RESAMPLE grava o que está tocando num slot
   </div>
 </div>
 
@@ -412,6 +418,8 @@ let nsteps = 16;
 const allIds = SOUNDS.map(s=>s.id).concat(SAMPLE_IDS);
 let steps = {};
 allIds.forEach(id => steps[id] = new Array(MAXSTEPS).fill(false));
+// notas do teclado gravadas no beat: kbSeq[passo] = [{m:midi, e:motor, d:duração em passos}]
+let kbSeq = new Array(MAXSTEPS).fill(null);
 let selected = "kick";
 let bpm = 120;
 let playing = false;
@@ -426,10 +434,13 @@ try{
       const a = saved.steps && saved.steps[id];
       if(a) steps[id] = a.concat(new Array(MAXSTEPS).fill(false)).slice(0, MAXSTEPS);
     });
+    if(Array.isArray(saved.kbSeq)){
+      saved.kbSeq.slice(0, MAXSTEPS).forEach((c,i)=>{ if(Array.isArray(c) && c.length) kbSeq[i] = c; });
+    }
   }
 }catch(e){}
 function save(){
-  try{ localStorage.setItem("po133", JSON.stringify({bpm, nsteps, steps})); }catch(e){}
+  try{ localStorage.setItem("po133", JSON.stringify({bpm, nsteps, steps, kbSeq})); }catch(e){}
 }
 
 /* ============================================================
@@ -585,6 +596,7 @@ const stepDur = () => 60 / bpm / 4; // semicolcheias
 
 function scheduleStep(stepIdx, t){
   allIds.forEach(id => { if(steps[id][stepIdx]) playSound(id, t); });
+  if(kbSeq[stepIdx]) kbSeq[stepIdx].forEach(nt => kbPlayNote(nt, t));
   // luz do passo sincronizada com o áudio
   const delay = Math.max(0, (t - ctx.currentTime) * 1000);
   setTimeout(()=>{
@@ -648,6 +660,7 @@ $("#clear-track").addEventListener("pointerdown", ()=>{
 });
 $("#clear-all").addEventListener("pointerdown", ()=>{
   allIds.forEach(id => steps[id] = new Array(MAXSTEPS).fill(false));
+  kbSeq = new Array(MAXSTEPS).fill(null);
   refreshSteps(); save();
 });
 
@@ -755,6 +768,9 @@ const KB_ENGINES = [
 
 /* vozes ativas: um dedo (pointer) = uma voz, com deslize entre teclas */
 const kbVoices = new Map();
+let kbArmed = false;                 // ● GRAVAR ligado
+const kbRecPending = new Map();      // notas seguradas ainda não gravadas
+
 function kbNoteOn(pid, midi, keyEl){
   const n = kbAudio();
   const f = 440 * Math.pow(2, (midi-69)/12);
@@ -769,6 +785,13 @@ function kbNoteOn(pid, midi, keyEl){
   keyEl.classList.add("onk");
   $("#lcd-sound").textContent = eng.nm + " " + NOTE_NM[midi%12] + (Math.floor(midi/12)-1);
   if(navigator.vibrate) navigator.vibrate(6);
+  // gravação ao vivo: quantiza a nota para o passo mais próximo
+  if(kbArmed && playing){
+    const sd = stepDur();
+    const off = Math.round((t - nextTime) / sd);
+    const idx = ((current + off) % nsteps + nsteps) % nsteps;
+    kbRecPending.set(pid, { idx, tOn: t, midi });
+  }
 }
 function kbNoteOff(pid){
   const v = kbVoices.get(pid);
@@ -780,6 +803,33 @@ function kbNoteOff(pid){
   v.env.gain.setValueAtTime(Math.max(v.env.gain.value, 0.0001), t);
   v.env.gain.exponentialRampToValueAtTime(0.0001, t + rel);
   v.oscs.forEach(o=>{ try{ o.stop(t + rel + 0.1); }catch(e){} });
+  // fecha a gravação da nota: duração em passos (mín. 1, máx. 16)
+  const p = kbRecPending.get(pid);
+  if(p){
+    kbRecPending.delete(pid);
+    const d = Math.max(1, Math.min(16, Math.round((t - p.tOn) / stepDur())));
+    const arr = kbSeq[p.idx] || (kbSeq[p.idx] = []);
+    const dup = arr.findIndex(nt => nt.m === p.midi);
+    if(dup >= 0) arr.splice(dup, 1);
+    arr.push({ m: p.midi, e: kbCfg.engine, d });
+    save();
+  }
+}
+/* toca uma nota gravada, agendada no tempo do sequenciador */
+function kbPlayNote(nt, t){
+  const n = kbAudio();
+  const f = 440 * Math.pow(2, (nt.m-69)/12);
+  const durSec = nt.d * stepDur();
+  const atk = Math.max(0.005, kbCfg.attack), rel = Math.max(0.04, kbCfg.release);
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0.0001, t);
+  env.gain.exponentialRampToValueAtTime(1, t + Math.min(atk, durSec));
+  env.gain.setValueAtTime(1, t + durSec);
+  env.gain.exponentialRampToValueAtTime(0.0001, t + durSec + rel);
+  env.connect(n.filter);
+  const eng = KB_ENGINES.find(e=>e.key===nt.e) || KB_ENGINES[0];
+  const oscs = eng.build(f, env, t);
+  oscs.forEach(o=>{ try{ o.stop(t + durSec + rel + 0.15); }catch(e){} });
 }
 function kbAllOff(){ Array.from(kbVoices.keys()).forEach(kbNoteOff); }
 
@@ -855,6 +905,21 @@ $("#oct-up").addEventListener("pointerdown", ()=>{
     kbCfg[field] = parseFloat(e.target.value);
     applyKb(); saveKb();
   });
+});
+
+/* gravar o teclado no beat */
+$("#kb-rec").addEventListener("pointerdown", ()=>{
+  kbArmed = !kbArmed;
+  const btn = $("#kb-rec");
+  btn.classList.toggle("recording", kbArmed);
+  btn.textContent = kbArmed ? "● GRAVANDO" : "● GRAVAR";
+  $("#lcd-state").textContent = kbArmed
+    ? (playing ? "● REC TECLADO" : "● REC — APERTE PLAY")
+    : (playing ? "▶ TOCANDO" : "■ PARADO");
+});
+$("#kb-clear").addEventListener("pointerdown", ()=>{
+  kbSeq = new Array(MAXSTEPS).fill(null);
+  save();
 });
 
 function initKb(){
@@ -1007,6 +1072,21 @@ applyTheme();
 
 /* sem menu de contexto em toque longo (mobile) */
 document.addEventListener("contextmenu", e => e.preventDefault());
+
+/* bloqueia zoom no celular: o iOS ignora user-scalable=no, então
+   é preciso barrar o toque duplo e a pinça via eventos */
+document.addEventListener("dblclick", e => e.preventDefault());
+document.addEventListener("gesturestart", e => e.preventDefault());
+document.addEventListener("gesturechange", e => e.preventDefault());
+let lastTouchEnd = 0;
+document.addEventListener("touchend", e => {
+  const now = Date.now();
+  if(now - lastTouchEnd < 350) e.preventDefault(); // toque duplo
+  lastTouchEnd = now;
+}, {passive:false});
+document.addEventListener("touchmove", e => {
+  if(e.scale !== undefined && e.scale !== 1) e.preventDefault(); // pinça (iOS)
+}, {passive:false});
 
 /* retoma o áudio se o sistema o interromper (troca de aba, ligação, microfone) */
 document.addEventListener("visibilitychange", ()=>{

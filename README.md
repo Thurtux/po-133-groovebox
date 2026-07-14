@@ -7,10 +7,13 @@ Um único arquivo HTML, zero dependências — todos os sons são sintetizados e
 ## Recursos
 
 - **28 sons sintetizados**: 12 beats (bumbo, bumbo 808, caixas, palma, chimbais, shaker, tons, rim, cowbell), 8 graves (sub estilo 808 + baixo ácido) e 8 sintetizadores (lead + pluck)
-- **Sequenciador de 16 passos** estilo Pocket Operator, uma trilha por som
-- **4 slots de sample**: grave até 4 segundos com o microfone e sequencie como qualquer outro som
-- **BPM de 50 a 240**, padrão salvo automaticamente no navegador
-- **Otimizado para celular**: resposta imediata ao toque, barra de transporte fixa, vibração ao tocar os pads
+- **Sequenciador de 16 ou 32 passos** estilo Pocket Operator, uma trilha por som
+- **Teclado sintetizador polifônico** com 5 motores (analog, quadra, FM, pluck, cordas), glissando, filtro, envelope, reverb de convolução e eco sincronizado com o BPM
+- **Gravação do teclado no beat**: arme ● GRAVAR, dê play e toque — as notas entram quantizadas no compasso e ficam em loop
+- **4 slots de sample**: grave até 4 segundos com o microfone, ou use ● RESAMPLE para capturar o que está tocando
+- **6 temas de cores + 4 cores personalizáveis** (destaque, painel, pads, display)
+- **BPM de 50 a 240**, tudo salvo automaticamente no navegador
+- **Otimizado para celular**: resposta imediata ao toque, barra de transporte fixa, zoom bloqueado, vibração nos pads, som funciona com o iPhone no silencioso
 - **Atalhos no PC**: `1–8 q w e r` beats · `a s d f` sub · `g h j k` acid · `z x c v` lead · `b n m ,` pluck · `espaço` play/stop
 
 ## Como usar
